@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PulsePlay — Premium Dark UI Music Player with customizable playlists and local audio upload support.">
+  <title>PulsePlay — Music Player</title>
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- JavaScript Files loaded with defer in correct sequence -->
+  <script src="js/playlist.js" defer></script>
+  <script src="js/script.js" defer></script>
+</head>
+<body>
+  <!-- Hidden Screen Reader Live Region for Accessibility Announcements -->
+  <div id="sr-announcements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Hidden Native Audio Element (HTML5 Audio API) -->
+  <audio id="audio-player" preload="metadata"></audio>
+
+  <div class="app-container">
+    <!-- 1. Sidebar and Navigation -->
+    <aside class="sidebar" aria-label="Main Navigation">
+      <div class="brand-header">
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">PulsePlay</h1>
+          <p class="brand-tagline">Your music. Your mood.</p>
+        </div>
+      </div>
+
+      <nav class="nav-section" aria-label="Player Menu">
+        <span class="nav-title">Menu</span>
+        <ul class="nav-list" role="menubar">
+          <li class="nav-item active" role="none">
+            <a href="#now-playing" role="menuitem" aria-current="page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+              <span>Now Playing</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="#playlist-section" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              <span>Playlist</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <button type="button" class="nav-btn" id="shortcuts-btn" aria-haspopup="dialog" aria-expanded="false" title="Keyboard Shortcuts (?)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="6" y1="8" x2="6.01" y2="8"></line>
+                <line x1="10" y1="8" x2="10.01" y2="8"></line>
+                <line x1="14" y1="8" x2="14.01" y2="8"></line>
+                <line x1="18" y1="8" x2="18.01" y2="8"></line>
+                <line x1="6" y1="12" x2="6.01" y2="12"></line>
+                <line x1="18" y1="12" x2="18.01" y2="12"></line>
+                <line x1="8" y1="16" x2="16" y2="16"></line>
+              </svg>
+              <span>Shortcuts</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>&copy; PulsePlay &bull; Vanilla JS</p>
+      </div>
+    </aside>
+
+    <!-- 2. Main Music Player Section -->
+    <main class="main-player-section" id="now-playing" aria-label="Audio Playback Center">
+      <header class="player-top-bar">
+        <span class="player-badge">Now Playing</span>
+        <button type="button" class="mobile-menu-btn" id="mobile-playlist-toggle" aria-label="Toggle playlist panel">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+
+      <!-- Player Alert / Error Message -->
+      <div id="player-error" role="alert" class="status-banner error hidden" aria-live="assertive">
+        <span id="error-message">Unable to load audio file.</span>
+      </div>
+
+      <!-- 3. Album Artwork -->
+      <figure class="artwork-container" id="album-art-container">
+        <img
+          src="assets/images/default-cover.svg"
+          alt="Album artwork for current track"
+          class="album-cover"
+          id="album-cover-img"
+        >
+        <!-- Buffering / Loading Indicator -->
+        <div class="artwork-loader hidden" id="artwork-loader" aria-hidden="true" title="Buffering audio...">
+          <div class="buffering-spinner"></div>
+        </div>
+      </figure>
+
+      <!-- 4. Song Title and Artist -->
+      <section class="track-info" aria-label="Track Information">
+        <h2 class="song-title" id="song-title">Neon Horizon</h2>
+        <p class="song-artist" id="song-artist">Cyber Synthwave</p>
+      </section>
+
+      <!-- 5 & 6. Progress Bar, Current Time and Total Duration -->
+      <section class="progress-section" aria-label="Track Timeline">
+        <div class="progress-bar-container">
+          <input
+            type="range"
+            id="progress-bar"
+            class="progress-bar"
+            min="0"
+            max="100"
+            value="0"
+            step="0.1"
+            aria-label="Playback track progress slider"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+        </div>
+        <div class="time-display" aria-hidden="true">
+          <span id="current-time">0:00</span>
+          <span id="total-duration">0:00</span>
+        </div>
+      </section>
+
+      <!-- 7, 8, 9, 10, 11. Playback Controls (Shuffle, Prev, Play/Pause, Next, Repeat) -->
+      <section class="controls-section" aria-label="Playback Controls">
+        <!-- 10. Shuffle Button -->
+        <button
+          type="button"
+          class="control-btn"
+          id="shuffle-btn"
+          aria-label="Shuffle playlist"
+          aria-pressed="false"
+          title="Toggle Shuffle"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="16 3 21 3 21 8"></polyline>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+            <line x1="4" y1="4" x2="9" y2="9"></line>
+          </svg>
+        </button>
+
+        <!-- 7. Previous Button -->
+        <button
+          type="button"
+          class="control-btn"
+          id="prev-btn"
+          aria-label="Previous song"
+          title="Previous Track (P)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+            <line x1="5" y1="19" x2="5" y2="5"></line>
+          </svg>
+        </button>
+
+        <!-- 8. Play/Pause Button -->
+        <button
+          type="button"
+          class="control-btn play-pause-btn"
+          id="play-pause-btn"
+          aria-label="Play song"
+          title="Play / Pause (Space)"
+        >
+          <!-- Play Icon shown by default -->
+          <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+            <polygon points="6 4 20 12 6 20 6 4"></polygon>
+          </svg>
+          <!-- Pause Icon (hidden initially) -->
+          <svg id="pause-icon" class="visually-hidden" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+            <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+            <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+          </svg>
+        </button>
+
+        <!-- 9. Next Button -->
+        <button
+          type="button"
+          class="control-btn"
+          id="next-btn"
+          aria-label="Next song"
+          title="Next Track (N)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+            <line x1="19" y1="5" x2="19" y2="19"></line>
+          </svg>
+        </button>
+
+        <!-- 11. Repeat Button -->
+        <button
+          type="button"
+          class="control-btn"
+          id="repeat-btn"
+          data-mode="off"
+          aria-label="Repeat mode: Off"
+          title="Repeat (Off / All / One)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </button>
+      </section>
+
+      <!-- 12 & 13. Volume Slider and Mute Button -->
+      <section class="volume-section" aria-label="Volume Control">
+        <!-- 13. Mute Button -->
+        <button
+          type="button"
+          class="volume-btn"
+          id="mute-btn"
+          aria-label="Mute audio"
+          title="Mute / Unmute (M)"
+        >
+          <svg id="volume-high-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <svg id="volume-muted-icon" class="visually-hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        </button>
+
+        <!-- 12. Volume Slider -->
+        <input
+          type="range"
+          id="volume-slider"
+          class="volume-slider"
+          min="0"
+          max="100"
+          value="80"
+          step="1"
+          aria-label="Adjust audio volume"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="80"
+        >
+      </section>
+    </main>
+
+    <!-- 14. Playlist Section -->
+    <aside class="playlist-section" id="playlist-section" aria-label="Playlist & Up Next">
+      <header class="playlist-header">
+        <div class="playlist-title-wrap">
+          <h2 class="playlist-title">Playlist</h2>
+          <span class="track-count-badge" id="track-count">3 tracks</span>
+        </div>
+        <button type="button" class="clear-playlist-btn" id="clear-playlist-btn" aria-label="Clear all tracks from playlist" title="Clear Playlist">
+          Clear
+        </button>
+      </header>
+
+      <!-- 15. Local Audio Upload Input -->
+      <section class="playlist-actions" aria-label="Upload Audio Files">
+        <input
+          type="file"
+          id="audio-upload"
+          accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac"
+          multiple
+          class="visually-hidden"
+          aria-label="Upload MP3 or audio files from local computer"
+        >
+        <label for="audio-upload" class="upload-label-btn" id="upload-label" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Upload Music</span>
+        </label>
+      </section>
+
+      <!-- Playlist Items Container -->
+      <ul class="playlist-list" id="playlist-list" role="list" aria-label="Current Track List">
+        <!-- Sample Initial Track Item 1 -->
+        <li class="playlist-item active" role="button" tabindex="0" data-index="0" aria-label="Play track 1: Neon Horizon by Cyber Synthwave">
+          <img src="assets/images/default-cover.svg" alt="" class="playlist-item-thumbnail" aria-hidden="true">
+          <div class="playlist-item-details">
+            <h3 class="playlist-item-title">Neon Horizon</h3>
+            <p class="playlist-item-artist">Cyber Synthwave</p>
+          </div>
+        </li>
+
+        <!-- Sample Initial Track Item 2 -->
+        <li class="playlist-item" role="button" tabindex="0" data-index="1" aria-label="Play track 2: Midnight Echoes by Lunar Ambient">
+          <img src="assets/images/default-cover.svg" alt="" class="playlist-item-thumbnail" aria-hidden="true">
+          <div class="playlist-item-details">
+            <h3 class="playlist-item-title">Midnight Echoes</h3>
+            <p class="playlist-item-artist">Lunar Ambient</p>
+          </div>
+        </li>
+
+        <!-- Sample Initial Track Item 3 -->
+        <li class="playlist-item" role="button" tabindex="0" data-index="2" aria-label="Play track 3: Pulse Velocity by Digital Groove">
+          <img src="assets/images/default-cover.svg" alt="" class="playlist-item-thumbnail" aria-hidden="true">
+          <div class="playlist-item-details">
+            <h3 class="playlist-item-title">Pulse Velocity</h3>
+            <p class="playlist-item-artist">Digital Groove</p>
+          </div>
+        </li>
+      </ul>
+
+      <!-- 16. Empty Playlist State (Toggled dynamically in Phase 4 when list is empty) -->
+      <div id="empty-playlist" class="empty-playlist visually-hidden" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9 9h.01M15 9h.01M10 13a4 4 0 0 0 4 0"></path>
+        </svg>
+        <p>No songs in playlist. Upload audio files to start listening!</p>
+        <button type="button" class="empty-upload-action-btn" id="empty-upload-btn">Upload Music</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Keyboard Shortcuts Accessible Dialog Modal -->
+  <dialog id="shortcuts-dialog" class="shortcuts-modal" aria-labelledby="shortcuts-title">
+    <div class="shortcuts-header">
+      <h2 id="shortcuts-title" class="shortcuts-title">Keyboard Shortcuts</h2>
+      <button type="button" class="modal-close-btn" id="close-shortcuts-btn" aria-label="Close shortcuts modal">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <table class="shortcuts-table" aria-label="List of available keyboard controls">
+      <tbody>
+        <tr>
+          <td><kbd>Space</kbd></td>
+          <td>Play / Pause current track</td>
+        </tr>
+        <tr>
+          <td><kbd>&rarr;</kbd> (Arrow Right)</td>
+          <td>Forward 5 seconds</td>
+        </tr>
+        <tr>
+          <td><kbd>&larr;</kbd> (Arrow Left)</td>
+          <td>Backward 5 seconds</td>
+        </tr>
+        <tr>
+          <td><kbd>&uarr;</kbd> (Arrow Up)</td>
+          <td>Increase volume (+5%)</td>
+        </tr>
+        <tr>
+          <td><kbd>&darr;</kbd> (Arrow Down)</td>
+          <td>Decrease volume (-5%)</td>
+        </tr>
+        <tr>
+          <td><kbd>M</kbd></td>
+          <td>Mute / Unmute audio</td>
+        </tr>
+        <tr>
+          <td><kbd>N</kbd></td>
+          <td>Next song</td>
+        </tr>
+        <tr>
+          <td><kbd>P</kbd></td>
+          <td>Previous song (restarts if &gt; 3s)</td>
+        </tr>
+      </tbody>
+    </table>
+  </dialog>
+</body>
+</html>
